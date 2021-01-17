@@ -1,0 +1,136 @@
+import React, { useEffect, useState, useRef } from "react";
+import Button from "@material-ui/core/Button";
+import { Box } from "@material-ui/core";
+import firebase from "../firebase";
+import Typography from "@material-ui/core/Typography";
+import Header from "./Header";
+import { ValidatorForm, TextValidator } from "react-material-ui-form-validator";
+
+function EditNote(props) {
+  const [title, setTitle] = useState("");
+  const [text, setText] = useState("");
+  const [subject, setSubject] = useState("");
+  const inputRef = useRef("form");
+  const userUID = firebase.auth().currentUser.uid;
+
+  useEffect(() => {
+    const docId = props.match.params.id;
+    firebase
+      .firestore()
+      .collection(userUID)
+      .doc(docId)
+      .get()
+      .then((doc) => {
+        if (doc.exists) {
+          const notes = doc.data();
+          setTitle(notes.title);
+          setText(notes.text);
+          setSubject(notes.subject);
+        }
+      });
+  }, [props.match.params.id, userUID]);
+
+  function handleTitleInput(e) {
+    setTitle(e.target.value);
+  }
+  function handleTextInput(e) {
+    setText(e.target.value);
+  }
+  function handleSubjectInput(e) {
+    setSubject(e.target.value);
+  }
+
+  function updateNote(e) {
+    e.preventDefault();
+
+    const id = props.match.params.id;
+    firebase
+      .firestore()
+      .collection(userUID)
+      .doc(id)
+      .set({
+        title: title,
+        text: text,
+        subject: subject,
+      })
+      .then(() => {
+        setTitle("");
+        setText("");
+        setSubject("");
+
+        props.history.push("/viewnote/" + id);
+      });
+  }
+
+  return (
+    <>
+      <Header />
+      <Box
+        display="flex"
+        justifyContent="center"
+        margin="40px auto "
+        alignItems="center"
+      >
+        <ValidatorForm
+          ref={inputRef}
+          style={{ marginLeft: "1rem", width: "75%" }}
+          onSubmit={updateNote}
+        >
+          <Typography variant="h6" color="primary">
+            Edit note
+          </Typography>
+
+          <TextValidator
+            margin="normal"
+            fullWidth
+            autoFocus
+            name="title"
+            label="title"
+            variant="outlined"
+            value={title}
+            onChange={handleTitleInput}
+            placeholder="Title"
+            validators={["required"]}
+            errorMessages={[
+              "A title  is required, Please type something here.",
+            ]}
+          />
+          <TextValidator
+            margin="normal"
+            fullWidth
+            autoFocus
+            name="subject"
+            label="subject"
+            variant="outlined"
+            value={subject}
+            onChange={handleSubjectInput}
+            placeholder="subject"
+            validators={["required"]}
+            errorMessages={[
+              "A subject  is required, Please type something here.",
+            ]}
+          />
+          <TextValidator
+            margin="normal"
+            fullWidth
+            autoFocus
+            multiline
+            name="text"
+            label="Note"
+            variant="outlined"
+            value={text}
+            onChange={handleTextInput}
+            placeholder="Text"
+            validators={["required"]}
+            errorMessages={["Note required, Please type something here."]}
+          />
+          <Button variant="contained" color="primary" type="submit">
+            Update Note
+          </Button>
+        </ValidatorForm>
+      </Box>
+    </>
+  );
+}
+
+export default EditNote;
